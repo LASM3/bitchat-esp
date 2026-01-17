@@ -1,4 +1,6 @@
 # bitchat-esp
+ESP32 peer for bitchat mesh
+
 
 <!--toc:start-->
 - [bitchat-esp](#bitchat-esp)
@@ -6,7 +8,6 @@
   - [Features](#features)
 <!--toc:end-->
 
- ESP32 peer for bitchat mesh
 
  
 ## What is this about

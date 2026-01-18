@@ -1,0 +1,15 @@
+{
+  "projectName": "bitchat-esp",
+  "projectOwner": "TenebrisOS",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 20,
+  "commit": true,
+  "commitConvention": "angular",
+  "contributors": [],
+  "contributorsPerLine": 7,
+  "linkToUsage": true
+}

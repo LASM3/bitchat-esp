@@ -48,7 +48,7 @@ Here is a list of supported devices
 
 
 ## bitchat-esp Repository
-- Link: [bitchat-esp GitHub Repository](https://https://github.com/TenebrisOS/bitchat-esp)
+- Link: [bitchat-esp GitHub Repository](https://github.com/TenebrisOS/bitchat-esp)
 
 
 ## Credits

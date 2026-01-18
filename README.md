@@ -86,7 +86,7 @@ You can use ```idf.py build flash monitor``` instead.
 ## Credits
 - Original bitchat mesh repo : [permissionlesstech/bitchat](https://github.com/permissionlesstech/bitchat)
 - Android version : [permissionlesstech/bitchat-android](https://github.com/permissionlesstech/bitchat-android)
-- Created by [TenebrisOS]("https://github.com/TenebrisOS")
+- Created by [TenebrisOS](https://github.com/TenebrisOS)
 - Support : 
   - [Rudi](https://github.com/Mayo-png)
 

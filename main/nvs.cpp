@@ -12,7 +12,10 @@ extern "C" {
 
 using namespace std;
 
+static const char *TAG = "NVS";
+
 esp_err_t nvs_init () {
+  ESP_LOGI(TAG, "Non-Volatile Storage initialized!");
   return nvs_flash_init();
 }
 

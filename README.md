@@ -1,3 +1,4 @@
+
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 [![All Contributors](https://img.shields.io/badge/all_contributors-0-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
@@ -6,17 +7,16 @@
 > This is experimental software
 ## Fast Travel
 <!--toc:start-->
-- [bitchat-esp](#bitchat-esp)
-  - [What is this about](#what-is-this-about)
-  - [Features](#features)
-  - [Supported Devices](#supported-esp32-models)
-  - [Repository](#bitchat-esp-repository)
-  - [Credits](credits)
-  - [Installing](#installing)
-  - [Building](#building-from-source)
-  - [Credits](#credits)
-  - [Contributors](#contributors-)
-  - [License](#license)
+- [What is this about](#what-is-this-about)
+- [Features](#features)
+- [Supported Devices](#supported-esp32-models)
+- [Repository](#bitchat-esp-repository)
+- [Credits](credits)
+- [Installing](#installing)
+- [Building](#building-from-source)
+- [Credits](#credits)
+- [Contributors](#contributors-)
+- [License](#license)
 <!--toc:end-->
  
 ## What is this about
@@ -86,25 +86,9 @@ You can use ```idf.py build flash monitor``` instead.
 ## Credits
 - Original bitchat mesh repo : [permissionlesstech/bitchat](https://github.com/permissionlesstech/bitchat)
 - Android version : [permissionlesstech/bitchat-android](https://github.com/permissionlesstech/bitchat-android)
-
-## Contributors ✨
-
-Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
-<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-<!-- prettier-ignore-start -->
-<!-- markdownlint-disable -->
-<!-- markdownlint-restore -->
-<!-- prettier-ignore-end -->
-<!-- ALL-CONTRIBUTORS-LIST:END -->
-
-<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-<!-- prettier-ignore-start -->
-<!-- markdownlint-disable -->
-<!-- markdownlint-restore -->
-<!-- prettier-ignore-end -->
-<!-- ALL-CONTRIBUTORS-LIST:END -->
-
-This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
+- Created by [TenebrisOS]("https://github.com/TenebrisOS")
+- Support : 
+  - [Rudi](https://github.com/Mayo-png)
 
 ## License 
 This project is under the GNU GPLv3 License, check the [License](LICENSE) file.

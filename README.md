@@ -1,42 +1,44 @@
-# bitchat-esp
-ESP32 peer for bitchat mesh
+<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+[![All Contributors](https://img.shields.io/badge/all_contributors-0-orange.svg?style=flat-square)](#contributors-)
+<!-- ALL-CONTRIBUTORS-BADGE:END -->
 
-
+> [!WARNING]
+> This is experimental software
+## Fast Travel
 <!--toc:start-->
 - [bitchat-esp](#bitchat-esp)
   - [What is this about](#what-is-this-about)
   - [Features](#features)
-  - [Supported Devices](supported-devices)
+  - [Supported Devices](#supported-esp32-models)
   - [Repository](#bitchat-esp-repository)
   - [Credits](credits)
+  - [Installing](#installing)
+  - [Building](#building-from-source)
+  - [Credits](#credits)
+  - [Contributors](#contributors-)
+  - [License](#license)
 <!--toc:end-->
-
-
  
 ## What is this about
-We want to bring Bitchat to the ESP32. So that the ESP32 is working like a relay server (or like a peer).
+We want to bring Bitchat to the ESP32. It would work as a peer or relay for the bitchat mesh. Making it a cheap way to make a bitchat network
 
-> [!NOTE]
-> Help is welcome. We need some C++.
- 
 ## Features
 
-| Features                                     |  ESP32 |
-| :------------------------------------------- | ------ |
-| Relay-Server for Bitchat                     | Not Implemented yet    |
+| Features | Progress |
+|------|-------------|
+| Basic mesh peer | Priority work|
+| Texting using monitor | Not started yet |
+| Logging to storage | Not started yet |
 
 
 > [!NOTE]
-> Please make an feature request.
+> You can request features in [issues](https://github.com/TenebrisOS/bitchat-esp/issues).
 
-
-
-## Supported Devices
-Here is a list of supported devices
+## Supported ESP32 Models
 
 | ESP32 Devices              | Status  |
 |----------------------------|------------------|
-| ESP32-WROOM-32             | ❌ Not Released   |
+| ESP32-WROOM-32             | Working on it!   |
 | ESP32-WROOM-32U            | ❌ Not Released   |
 | ESP32-WROVER-32            | ❌ Not Released   |
 | ESP32-WROVER-32U           | ❌ Not Released   |
@@ -45,11 +47,64 @@ Here is a list of supported devices
 | ESP32-S3                   | ❌ Not Released   |
 | ESP32-C3                   | ❌ Not Released   |
 
+## Building from Source
+> [!NOTE]
+> Make sure you have ESP-IDF installed or checkout [Setting Up ESP-IDF Development Environment](https://espressif.github.io/esp32-c3-book-en/chapter_4/4.2/index.html) 
+ 
+To build this project, you will need to clone the source first :
+```bash
+git clone --depth=1 https://github.com/TenebrisOS/bitchat-esp.git
+```
+Then enter the directory
+```bash
+cd bitchat-esp
+```
 
+Build the project using ESP-IDF
+``` bash
+idf.py build
+```
+Make sure your ESP32 is correctly visible
+``` bash
+lsusb
+```
 
-## bitchat-esp Repository
-- Link: [bitchat-esp GitHub Repository](https://https://github.com/TenebrisOS/bitchat-esp)
+Flash your ESP32 
+``` bash
+idf.py flash
+```
 
+Monitor it 
+``` bash
+idf.py monitor
+```
 
+You can use ```idf.py build flash monitor``` instead.
+> [!NOTE]
+> Help is welcome. C/C++ ESP-IDF Programmers or just testers
+ 
 ## Credits
-- **Developers:** This project is maintained by TenebrisOS and Mayo-png.
+- Original bitchat mesh repo : [permissionlesstech/bitchat](https://github.com/permissionlesstech/bitchat)
+- Android version : [permissionlesstech/bitchat-android](https://github.com/permissionlesstech/bitchat-android)
+
+## Contributors ✨
+
+Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
+
+## License 
+This project is under the GNU GPLv3 License, check the [License](LICENSE) file.

@@ -11,7 +11,6 @@
 - [Features](#features)
 - [Supported Devices](#supported-esp32-models)
 - [Repository](#bitchat-esp-repository)
-- [Credits](credits)
 - [Installing](#installing)
 - [Building](#building-from-source)
 - [Credits](#credits)

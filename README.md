@@ -1,6 +1,8 @@
-
+# BITCHAT ESP
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-0-orange.svg?style=flat-square)](#contributors-)
+[![Contributors](https://img.shields.io/github/contributors/TenebrisOS/bitchat-esp)](https://github.com/TenebrisOS/bitchat-esp/graphs/contributors) [![Stars](https://img.shields.io/github/stars/TenebrisOS/bitchat-esp)](https://github.com/TenebrisOS/bitchat-esp/stargazers) [![Downloads](https://img.shields.io/github/downloads/TenebrisOS/bitchat-esp/total)](https://github.com/TenebrisOS/bitchat-esp/releases) [![Release](https://img.shields.io/github/v/release/TenebrisOS/bitchat-esp)](https://github.com/TenebrisOS/bitchat-esp/releases/latest) [![License](https://img.shields.io/github/license/TenebrisOS/bitchat-esp)](https://github.com/TenebrisOS/bitchat-esp/blob/main/LICENSE)
+
+
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 > [!WARNING]
@@ -45,6 +47,27 @@ We want to bring Bitchat to the ESP32. It would work as a peer or relay for the 
 | ESP32-S2                   | ❌ Not Released   |
 | ESP32-S3                   | ❌ Not Released   |
 | ESP32-C3                   | ❌ Not Released   |
+
+## Installing
+Check [Releases](https://github.com/TenebrisOS/bitchat-esp/releases) page and download the assets you need : 
+`bitchat-esp.bin` `bootloader.bin` `partition-table.bin` `flasher_args.json`
+
+First of, check the authenticity of the files you acquired
+``` bash
+sha256sum -c sha256sums.txt
+```
+Then use `esptool.py` to flash using this command (make sure your ESP is plugged) :
+``` bash
+esptool.py --chip esp32 write_flash -z \
+  0x1000  bitchat-esp.bin \
+  0x8000  partition-table.bin \
+  0x10000 firmware.bin
+```
+Or using `flasher_args.json`
+``` bash
+python $IDF_PATH/components/esptool_py/esptool/esptool.py \
+  --chip esp32 write_flash -z @flasher_args.json
+```
 
 ## Building from Source
 > [!NOTE]

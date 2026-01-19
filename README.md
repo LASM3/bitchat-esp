@@ -27,6 +27,7 @@ We want to bring Bitchat to the ESP32. It would work as a peer or relay for the 
 
 | Features | Progress |
 |------|-------------|
+| Bitchat mesh detection | Done |
 | Basic mesh peer | Priority work|
 | Texting using monitor | Not started yet |
 | Logging to storage | Not started yet |

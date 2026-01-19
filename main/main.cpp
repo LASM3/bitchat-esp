@@ -1,7 +1,9 @@
 #include "mesh.hpp"
 #include "blehandler.hpp"
-#include "nvs.h"
+#include "nvs.hpp"
+
 #include "struct.hpp"
+
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -9,11 +11,9 @@
 
 using namespace std;
 
-static const char *TAG = "BITCHAT";
-
 extern "C" int app_main() {
   
-  ESP_LOGI(TAG, "Welcome to Bitchat");
+  ESP_LOGI(MAIN_TAG, "Welcome to Bitchat");
   
   static esp_bt_mode_t mode = ESP_BT_MODE_BLE;
   
@@ -24,15 +24,15 @@ extern "C" int app_main() {
     
   if (bleinit != ESP_OK) {
 
-    ESP_LOGE("BITCHAT_BLE", "Bluetooth low energy initialization failed!, code=%d", bleinit);
+    ESP_LOGE(BLE_TAG, "Bluetooth low energy initialization failed!, code=%d", bleinit);
   }
-  uint32_t scan_dur = 10;
+  uint32_t scan_dur = 0;
   
   esp_err_t ble_start = ble_start_scan(scan_dur);
-  
+
   if (ble_start != ESP_OK) {
 
-    ESP_LOGE("BITCHAT_BLE", "Bluetooth low energy scan start failed!, code=%d", bleinit);
+    ESP_LOGE(BLE_TAG, "Bluetooth low energy scan start failed!, code=%d", bleinit);
   }
 
 
@@ -50,6 +50,8 @@ extern "C" int app_main() {
   
 
   // ScanforPeers();
-
+  while (true) {
+      vTaskDelay(pdMS_TO_TICKS(1000));
+  }
   return 0;
 }

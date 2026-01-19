@@ -2,7 +2,8 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include <stdio.h>
+#include <stdio.h>  
+#include <map>
 
 using namespace std;
 
@@ -12,11 +13,43 @@ using namespace std;
 /// Unique peer identifier (8 bytes, random or hashed)
 using PeerID = uint64_t;
 
+static const char* BLE_TAG = "BITCHAT_BLE";
+
+static const char* MAIN_TAG = "BITCHAT";
+
+static const char* NVS_TAG = "BITCHAT_NVS";
+
+static const char* ERR_TAG = "BITCHAT_ERR";
+
+static const char* MESH_TAG = "BITCHAT_MESH";
+
 /// Unique message identifier
 using MessageID = uint64_t;
 
+// Testnet UUID in little-endian (BLE format)  
+static const uint8_t TESTNET_UUID_LE[16] = {  
+    0x5A, 0x4B, 0x3A, 0x2C, 0x1D, 0x8E, 0x3F, 0x9B,  
+    0x5A, 0x4C, 0x9E, 0x4A, 0x2D, 0x5E, 0x7B, 0xF4  
+};  
+  
+// Mainnet UUID in little-endian  
+static const uint8_t MAINNET_UUID_LE[16] = {  
+    0x5C, 0x4B, 0x3A, 0x2C, 0x1D, 0x8E, 0x3F, 0x9B,  
+    0x5A, 0x4C, 0x9E, 0x4A, 0x2D, 0x5E, 0x7B, 0xF4  
+};  
+
 /// Used when sending to everyone
 constexpr PeerID BROADCAST_ID = 0xFFFFFFFFFFFFFFFF;
+
+struct PeerInfo {
+    uint64_t peerID;
+    int8_t rssi;
+    uint8_t version;
+    uint32_t last_seen;
+};
+
+extern map<uint64_t, PeerInfo> peers;
+
 
 enum class PacketType : uint8_t {
   Chat            = 1,  // normal chat message
@@ -77,11 +110,4 @@ struct FragmentChunk {
 /// Sent after last fragment
 struct FragmentEnd {
   MessageID originalMessageId;
-};
-
-struct PeerInfo {
-  PeerID id;
-  string nickname;
-  bool isBlocked  = false;
-  bool isFavorite = false;
 };

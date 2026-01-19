@@ -1,3 +1,7 @@
 #pragma once
+#include <cstdint>
+#include <stdio.h>  
 
-void ScanforPeers();
+using namespace std;
+
+void parse_advertisement(uint8_t* adv, uint8_t adv_len);

@@ -12,11 +12,9 @@
 - [What is this about](#what-is-this-about)
 - [Features](#features)
 - [Supported Devices](#supported-esp32-models)
-- [Repository](#bitchat-esp-repository)
 - [Installing](#installing)
 - [Building](#building-from-source)
 - [Credits](#credits)
-- [Contributors](#contributors-)
 - [License](#license)
 <!--toc:end-->
  
@@ -27,7 +25,7 @@ We want to bring Bitchat to the ESP32. It would work as a peer or relay for the 
 
 | Features | Progress |
 |------|-------------|
-| Bitchat mesh detection | Done |
+| Bitchat mesh detection | ✓ Done |
 | Basic mesh peer | Priority work|
 | Texting using monitor | Not started yet |
 | Logging to storage | Not started yet |

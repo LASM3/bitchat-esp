@@ -1,0 +1,15 @@
+menu "Bitchat ESP"
+
+choice BITCHAT_NETWORK
+    prompt "Bitchat BLE network"
+    default BITCHAT_NETWORK_TESTNET
+
+config BITCHAT_NETWORK_TESTNET
+    bool "Testnet"
+
+config BITCHAT_NETWORK_MAINNET
+    bool "Mainnet"
+
+endchoice
+
+endmenu

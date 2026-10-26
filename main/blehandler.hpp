@@ -13,3 +13,4 @@ void ble_enable(esp_bt_mode_t mode);
 
 esp_err_t ble_start_scan(uint32_t scan_duration_ms);
 
+esp_err_t ble_start_relay();

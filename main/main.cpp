@@ -9,13 +9,14 @@
 #include <chrono>
 #include "esp_log.h"
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
 using namespace std;
 
 extern "C" int app_main() {
   
   ESP_LOGI(MAIN_TAG, "Welcome to Bitchat");
-  
-  static esp_bt_mode_t mode = ESP_BT_MODE_BLE;
   
   // Non-Volatile storage initialization
   nvs_init();
@@ -25,6 +26,7 @@ extern "C" int app_main() {
   if (bleinit != ESP_OK) {
 
     ESP_LOGE(BLE_TAG, "Bluetooth low energy initialization failed!, code=%d", bleinit);
+    return bleinit;
   }
   uint32_t scan_dur = 0;
   
@@ -32,7 +34,14 @@ extern "C" int app_main() {
 
   if (ble_start != ESP_OK) {
 
-    ESP_LOGE(BLE_TAG, "Bluetooth low energy scan start failed!, code=%d", bleinit);
+    ESP_LOGE(BLE_TAG, "Bluetooth low energy scan start failed!, code=%d", ble_start);
+    return ble_start;
+  }
+
+  esp_err_t relay_start = ble_start_relay();
+  if (relay_start != ESP_OK) {
+    ESP_LOGE(BLE_TAG, "Bluetooth relay start failed, code=%d", relay_start);
+    return relay_start;
   }
 
 

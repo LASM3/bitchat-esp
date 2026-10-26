@@ -25,14 +25,13 @@ We want to bring Bitchat to the ESP32. It would work as a peer or relay for the 
 
 | Features | Progress |
 |------|-------------|
-| Bitchat mesh detection | ✓ Done |
-| Basic mesh peer | Priority work|
+| Bitchat mesh detection | Done |
+| Basic mesh peer | Experimental |
 | Texting using monitor | Not started yet |
 | Logging to storage | Not started yet |
 
-
 > [!NOTE]
-> You can request features in [issues](https://github.com/TenebrisOS/bitchat-esp/issues).
+> You can request features in [issues](https://github.com/LASM3/bitchat-esp/issues).
 
 ## Supported ESP32 Models
 
@@ -48,7 +47,7 @@ We want to bring Bitchat to the ESP32. It would work as a peer or relay for the 
 | ESP32-C3                   | ❌ Not Released   |
 
 ## Installing
-Check [Releases](https://github.com/TenebrisOS/bitchat-esp/releases) page and download the assets you need : 
+Check [Releases](https://github.com/LASM3/bitchat-esp/releases) page and download the assets you need : 
 `bitchat-esp.bin` `bootloader.bin` `partition-table.bin` `flasher_args.json`
 
 First of, check the authenticity of the files you acquired
@@ -74,7 +73,7 @@ python $IDF_PATH/components/esptool_py/esptool/esptool.py \
  
 To build this project, you will need to clone the source first :
 ```bash
-git clone --depth=1 https://github.com/TenebrisOS/bitchat-esp.git
+git clone --depth=1 https://github.com/LASM3/bitchat-esp.git
 ```
 Then enter the directory
 ```bash
@@ -108,6 +107,7 @@ You can use ```idf.py build flash monitor``` instead.
 - Original bitchat mesh repo : [permissionlesstech/bitchat](https://github.com/permissionlesstech/bitchat)
 - Android version : [permissionlesstech/bitchat-android](https://github.com/permissionlesstech/bitchat-android)
 - Created by [TenebrisOS](https://github.com/TenebrisOS)
+- Maintained by [lasm3](https://github.com/LASM3)
 - Support : 
   - [Rudi](https://github.com/Mayo-png)
 

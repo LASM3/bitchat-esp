@@ -7,7 +7,10 @@
 #include "esp_log.h"
 
 #include "esp_gap_ble_api.h"
+#include "esp_gatts_api.h"
 #include "esp_bt_defs.h"
+#include "esp_gatt_common_api.h"
+#include "sdkconfig.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -25,7 +28,452 @@ using namespace std;
 
 map<uint64_t, PeerInfo> peers;
 
+namespace {
+
+constexpr uint16_t kRelayAppId = 0x55;
+constexpr uint16_t kMaxRelayConnections = CONFIG_BTDM_CTRL_BLE_MAX_CONN;
+constexpr size_t kForwardedPacketCacheSize = 64;
+constexpr uint16_t kCccdUuid = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
+
+static const char* RELAY_TAG = "BITCHAT_RELAY";
+static const uint8_t kCharacteristicUuid[16] = {
+    0x5D, 0x4C, 0x3B, 0x2A, 0x1F, 0x0E, 0x9D, 0x8C,
+    0x5B, 0x4A, 0xF6, 0xE5, 0xD4, 0xC3, 0xB2, 0xA1
+};
+
+#if defined(CONFIG_BITCHAT_NETWORK_MAINNET)
+static const uint8_t* kActiveServiceUuid = MAINNET_UUID_LE;
+#else
+static const uint8_t* kActiveServiceUuid = TESTNET_UUID_LE;
+#endif
+
+struct RelayConnection {
+    uint16_t conn_id;
+    uint16_t mtu;
+    bool active;
+    bool subscribed;
+};
+
+struct PacketFingerprint {
+    uint64_t value;
+    bool valid;
+};
+
+static RelayConnection s_connections[kMaxRelayConnections] = {};
+static PacketFingerprint s_forwarded_packets[kForwardedPacketCacheSize] = {};
+static size_t s_next_packet_fingerprint = 0;
+static esp_gatt_if_t s_gatts_if = ESP_GATT_IF_NONE;
+static uint16_t s_service_handle = 0;
+static uint16_t s_characteristic_handle = 0;
+static uint16_t s_cccd_handle = 0;
+static uint8_t s_characteristic_value = 0;
+static uint8_t s_cccd_value[2] = {};
+static bool s_service_started = false;
+static bool s_advertising_data_ready = false;
+static bool s_scan_response_ready = false;
+static bool s_advertising = false;
+static bool s_advertising_start_pending = false;
+
+static esp_ble_adv_params_t s_advertising_params = {};
+
+static RelayConnection* find_connection(uint16_t conn_id) {
+    for (size_t i = 0; i < kMaxRelayConnections; ++i) {
+        if (s_connections[i].active && s_connections[i].conn_id == conn_id) {
+            return &s_connections[i];
+        }
+    }
+    return nullptr;
+}
+
+static void maybe_start_advertising() {
+    if (!s_advertising_data_ready || !s_scan_response_ready ||
+        !s_service_started || s_advertising || s_advertising_start_pending) {
+        return;
+    }
+
+    s_advertising_start_pending = true;
+    const esp_err_t err = esp_ble_gap_start_advertising(&s_advertising_params);
+    if (err != ESP_OK) {
+        s_advertising_start_pending = false;
+        ESP_LOGE(RELAY_TAG, "Could not start advertising: %s", esp_err_to_name(err));
+    }
+}
+
+static uint64_t packet_fingerprint(const uint8_t* data, size_t length) {
+    size_t end = length;
+    if (length >= 22) {
+        const uint8_t version = data[0];
+        const size_t header_size = version == 1 ? 14 : (version >= 2 ? 16 : 0);
+        if (header_size != 0) {
+            const uint8_t flags = data[11];
+            size_t offset = header_size + 8;
+            uint32_t payload_size = 0;
+
+            if (header_size == 14) {
+                payload_size = (static_cast<uint32_t>(data[12]) << 8) | data[13];
+            } else {
+                payload_size = (static_cast<uint32_t>(data[12]) << 24) |
+                    (static_cast<uint32_t>(data[13]) << 16) |
+                    (static_cast<uint32_t>(data[14]) << 8) | data[15];
+            }
+
+            bool valid = offset <= length;
+            if (valid && (flags & 0x01) != 0) {
+                valid = length - offset >= 8;
+                offset += valid ? 8 : 0;
+            }
+            if (valid && header_size == 16 && (flags & 0x08) != 0) {
+                valid = offset < length;
+                if (valid) {
+                    const size_t route_size = 1 + static_cast<size_t>(data[offset]) * 8;
+                    valid = route_size <= length - offset;
+                    offset += valid ? route_size : 0;
+                }
+            }
+            if (valid) {
+                valid = payload_size <= length - offset;
+                offset += valid ? payload_size : 0;
+            }
+            if (valid && (flags & 0x02) != 0) {
+                valid = length - offset >= 64;
+                offset += valid ? 64 : 0;
+            }
+            if (valid) {
+                end = offset;
+            }
+        }
+    }
+
+    // Exclude TTL and transport padding so relayed copies share an identity.
+    uint64_t hash = 14695981039346656037ULL;
+    for (size_t i = 0; i < end; ++i) {
+        if (i == 2) {
+            continue;
+        }
+        hash ^= data[i];
+        hash *= 1099511628211ULL;
+    }
+    return hash;
+}
+
+static bool packet_was_forwarded(uint64_t fingerprint) {
+    for (size_t i = 0; i < kForwardedPacketCacheSize; ++i) {
+        if (s_forwarded_packets[i].valid &&
+            s_forwarded_packets[i].value == fingerprint) {
+            return true;
+        }
+    }
+
+    s_forwarded_packets[s_next_packet_fingerprint].value = fingerprint;
+    s_forwarded_packets[s_next_packet_fingerprint].valid = true;
+    s_next_packet_fingerprint =
+        (s_next_packet_fingerprint + 1) % kForwardedPacketCacheSize;
+    return false;
+}
+
+static void forward_packet(uint16_t source_conn_id, uint16_t attribute_handle,
+                           uint8_t* data, uint16_t length) {
+    if (length == 0 || packet_was_forwarded(packet_fingerprint(data, length))) {
+        return;
+    }
+
+    size_t forwarded_count = 0;
+    for (size_t i = 0; i < kMaxRelayConnections; ++i) {
+        RelayConnection& connection = s_connections[i];
+        if (!connection.active || !connection.subscribed ||
+            connection.conn_id == source_conn_id) {
+            continue;
+        }
+
+        if (length > connection.mtu - 3) {
+            ESP_LOGW(RELAY_TAG,
+                     "Dropping %u-byte frame for connection %u (MTU %u)",
+                     length, connection.conn_id, connection.mtu);
+            continue;
+        }
+
+        const esp_err_t err = esp_ble_gatts_send_indicate(
+            s_gatts_if, connection.conn_id, attribute_handle, length, data, false);
+        if (err != ESP_OK) {
+            ESP_LOGW(RELAY_TAG, "Forward to connection %u failed: %s",
+                     connection.conn_id, esp_err_to_name(err));
+        } else {
+            ++forwarded_count;
+        }
+    }
+    ESP_LOGI(RELAY_TAG, "Received %u-byte frame from connection %u; forwarded to %u peer(s)",
+             length, source_conn_id, static_cast<unsigned>(forwarded_count));
+}
+
+static void gatts_callback(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
+                           esp_ble_gatts_cb_param_t* param) {
+    switch (event) {
+        case ESP_GATTS_REG_EVT: {
+            if (param->reg.status != ESP_GATT_OK) {
+                ESP_LOGE(RELAY_TAG, "GATT app registration failed: %d",
+                         param->reg.status);
+                return;
+            }
+            s_gatts_if = gatts_if;
+
+            const esp_err_t name_err =
+                esp_ble_gap_set_device_name("BitChat ESP32 Relay");
+            if (name_err != ESP_OK) {
+                ESP_LOGE(RELAY_TAG, "Could not set relay name: %s",
+                         esp_err_to_name(name_err));
+                return;
+            }
+
+            esp_ble_adv_data_t advertising_data = {};
+            advertising_data.set_scan_rsp = false;
+            advertising_data.include_name = false;
+            advertising_data.include_txpower = false;
+            advertising_data.service_uuid_len = 16;
+            advertising_data.p_service_uuid =
+                const_cast<uint8_t*>(kActiveServiceUuid);
+            advertising_data.flag = ESP_BLE_ADV_FLAG_GEN_DISC |
+                                    ESP_BLE_ADV_FLAG_BREDR_NOT_SPT;
+
+            esp_ble_adv_data_t scan_response = {};
+            scan_response.set_scan_rsp = true;
+            scan_response.include_name = true;
+            scan_response.include_txpower = false;
+
+            esp_err_t err = esp_ble_gap_config_adv_data(&advertising_data);
+            if (err != ESP_OK) {
+                ESP_LOGE(RELAY_TAG, "Advertising data config failed: %s",
+                         esp_err_to_name(err));
+                return;
+            }
+            err = esp_ble_gap_config_adv_data(&scan_response);
+            if (err != ESP_OK) {
+                ESP_LOGE(RELAY_TAG, "Scan response config failed: %s",
+                         esp_err_to_name(err));
+                return;
+            }
+
+            esp_gatt_srvc_id_t service_id = {};
+            service_id.is_primary = true;
+            service_id.id.inst_id = 0;
+            service_id.id.uuid.len = ESP_UUID_LEN_128;
+            memcpy(service_id.id.uuid.uuid.uuid128, kActiveServiceUuid, 16);
+            err = esp_ble_gatts_create_service(gatts_if, &service_id, 4);
+            if (err != ESP_OK) {
+                ESP_LOGE(RELAY_TAG, "GATT service creation failed: %s",
+                         esp_err_to_name(err));
+            }
+            break;
+        }
+
+        case ESP_GATTS_CREATE_EVT: {
+            if (param->create.status != ESP_GATT_OK) {
+                ESP_LOGE(RELAY_TAG, "GATT service creation failed: %d",
+                         param->create.status);
+                return;
+            }
+            s_service_handle = param->create.service_handle;
+            esp_bt_uuid_t characteristic_uuid = {};
+            characteristic_uuid.len = ESP_UUID_LEN_128;
+            memcpy(characteristic_uuid.uuid.uuid128, kCharacteristicUuid, 16);
+            const esp_gatt_char_prop_t properties =
+                static_cast<esp_gatt_char_prop_t>(
+                    ESP_GATT_CHAR_PROP_BIT_WRITE |
+                    ESP_GATT_CHAR_PROP_BIT_WRITE_NR |
+                    ESP_GATT_CHAR_PROP_BIT_NOTIFY);
+            esp_attr_value_t characteristic_value = {};
+            characteristic_value.attr_max_len = ESP_GATT_MAX_ATTR_LEN;
+            characteristic_value.attr_len = sizeof(s_characteristic_value);
+            characteristic_value.attr_value = &s_characteristic_value;
+            const esp_err_t err = esp_ble_gatts_add_char(
+                s_service_handle, &characteristic_uuid,
+                ESP_GATT_PERM_WRITE, properties, &characteristic_value, nullptr);
+            if (err != ESP_OK) {
+                ESP_LOGE(RELAY_TAG, "GATT characteristic creation failed: %s",
+                         esp_err_to_name(err));
+            }
+            break;
+        }
+
+        case ESP_GATTS_ADD_CHAR_EVT: {
+            if (param->add_char.status != ESP_GATT_OK) {
+                ESP_LOGE(RELAY_TAG, "GATT characteristic creation failed: %d",
+                         param->add_char.status);
+                return;
+            }
+            s_characteristic_handle = param->add_char.attr_handle;
+            esp_bt_uuid_t descriptor_uuid = {};
+            descriptor_uuid.len = ESP_UUID_LEN_16;
+            descriptor_uuid.uuid.uuid16 = kCccdUuid;
+            esp_attr_value_t cccd_value = {};
+            cccd_value.attr_max_len = sizeof(s_cccd_value);
+            cccd_value.attr_len = sizeof(s_cccd_value);
+            cccd_value.attr_value = s_cccd_value;
+            const esp_err_t err = esp_ble_gatts_add_char_descr(
+                s_service_handle, &descriptor_uuid,
+                ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE, &cccd_value, nullptr);
+            if (err != ESP_OK) {
+                ESP_LOGE(RELAY_TAG, "CCCD creation failed: %s",
+                         esp_err_to_name(err));
+            }
+            break;
+        }
+
+        case ESP_GATTS_ADD_CHAR_DESCR_EVT:
+            if (param->add_char_descr.status != ESP_GATT_OK) {
+                ESP_LOGE(RELAY_TAG, "CCCD creation failed: %d",
+                         param->add_char_descr.status);
+                return;
+            }
+            s_cccd_handle = param->add_char_descr.attr_handle;
+            if (s_service_handle != 0) {
+                const esp_err_t err = esp_ble_gatts_start_service(s_service_handle);
+                if (err != ESP_OK) {
+                    ESP_LOGE(RELAY_TAG, "Could not start GATT service: %s",
+                             esp_err_to_name(err));
+                }
+            }
+            break;
+
+        case ESP_GATTS_START_EVT:
+            if (param->start.status != ESP_GATT_OK) {
+                ESP_LOGE(RELAY_TAG, "GATT service start failed: %d",
+                         param->start.status);
+                return;
+            }
+            s_service_started = true;
+            maybe_start_advertising();
+            ESP_LOGI(RELAY_TAG, "GATT relay service started");
+            break;
+
+        case ESP_GATTS_CONNECT_EVT: {
+            RelayConnection* connection = nullptr;
+            for (size_t i = 0; i < kMaxRelayConnections; ++i) {
+                if (!s_connections[i].active) {
+                    connection = &s_connections[i];
+                    break;
+                }
+            }
+            if (connection == nullptr) {
+                ESP_LOGW(RELAY_TAG, "No connection slot for peer %u",
+                         param->connect.conn_id);
+                break;
+            }
+            connection->conn_id = param->connect.conn_id;
+            connection->mtu = 23;
+            connection->active = true;
+            connection->subscribed = false;
+            ESP_LOGI(RELAY_TAG, "Peer connected (connection %u)",
+                     connection->conn_id);
+            s_advertising = false;
+            s_advertising_start_pending = false;
+            maybe_start_advertising();
+            break;
+        }
+
+        case ESP_GATTS_DISCONNECT_EVT: {
+            RelayConnection* connection = find_connection(param->disconnect.conn_id);
+            if (connection != nullptr) {
+                connection->active = false;
+                connection->subscribed = false;
+            }
+            s_advertising = false;
+            s_advertising_start_pending = false;
+            maybe_start_advertising();
+            ESP_LOGI(RELAY_TAG, "Peer disconnected (connection %u)",
+                     param->disconnect.conn_id);
+            break;
+        }
+
+        case ESP_GATTS_MTU_EVT: {
+            RelayConnection* connection = find_connection(param->mtu.conn_id);
+            if (connection != nullptr) {
+                connection->mtu = param->mtu.mtu;
+                ESP_LOGI(RELAY_TAG, "Connection %u negotiated MTU %u",
+                         connection->conn_id, connection->mtu);
+            }
+            break;
+        }
+
+        case ESP_GATTS_WRITE_EVT: {
+            esp_gatt_status_t status = ESP_GATT_OK;
+            if (param->write.is_prep) {
+                status = ESP_GATT_REQ_NOT_SUPPORTED;
+            } else if (param->write.handle == s_cccd_handle &&
+                       param->write.len == 2) {
+                RelayConnection* connection = find_connection(param->write.conn_id);
+                if (connection != nullptr) {
+                    connection->subscribed =
+                        param->write.value[0] == 0x01 &&
+                        param->write.value[1] == 0x00;
+                    ESP_LOGI(RELAY_TAG, "Connection %u notifications %s",
+                             connection->conn_id,
+                             connection->subscribed ? "enabled" : "disabled");
+                }
+            } else if (param->write.handle == s_characteristic_handle &&
+                       param->write.len > 0) {
+                forward_packet(param->write.conn_id, param->write.handle,
+                               param->write.value, param->write.len);
+            } else {
+                status = ESP_GATT_INVALID_ATTR_LEN;
+            }
+            if (param->write.need_rsp) {
+                esp_ble_gatts_send_response(gatts_if, param->write.conn_id,
+                                            param->write.trans_id, status, nullptr);
+            }
+            break;
+        }
+
+        case ESP_GATTS_EXEC_WRITE_EVT:
+            if (param->exec_write.exec_write_flag == ESP_GATT_PREP_WRITE_EXEC) {
+                esp_ble_gatts_send_response(gatts_if, param->exec_write.conn_id,
+                                            param->exec_write.trans_id,
+                                            ESP_GATT_REQ_NOT_SUPPORTED, nullptr);
+            } else {
+                esp_ble_gatts_send_response(gatts_if, param->exec_write.conn_id,
+                                            param->exec_write.trans_id, ESP_GATT_OK,
+                                            nullptr);
+            }
+            break;
+
+        default:
+            break;
+    }
+}
+
+}  // namespace
+
 void gap_callback(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* param) {  
+    if (event == ESP_GAP_BLE_ADV_DATA_SET_COMPLETE_EVT) {
+        if (param->adv_data_cmpl.status == ESP_BT_STATUS_SUCCESS) {
+            s_advertising_data_ready = true;
+            maybe_start_advertising();
+        } else {
+            ESP_LOGE(RELAY_TAG, "Advertising data setup failed: %d",
+                     param->adv_data_cmpl.status);
+        }
+        return;
+    }
+    if (event == ESP_GAP_BLE_SCAN_RSP_DATA_SET_COMPLETE_EVT) {
+        if (param->scan_rsp_data_cmpl.status == ESP_BT_STATUS_SUCCESS) {
+            s_scan_response_ready = true;
+            maybe_start_advertising();
+        } else {
+            ESP_LOGE(RELAY_TAG, "Scan response setup failed: %d",
+                     param->scan_rsp_data_cmpl.status);
+        }
+        return;
+    }
+    if (event == ESP_GAP_BLE_ADV_START_COMPLETE_EVT) {
+        s_advertising_start_pending = false;
+        s_advertising = param->adv_start_cmpl.status == ESP_BT_STATUS_SUCCESS;
+        if (s_advertising) {
+            ESP_LOGI(RELAY_TAG, "BitChat relay advertising started");
+        } else {
+            ESP_LOGE(RELAY_TAG, "Advertising start failed: %d",
+                     param->adv_start_cmpl.status);
+        }
+        return;
+    }
     if (event != ESP_GAP_BLE_SCAN_RESULT_EVT) return;  
   
     auto& scan = param->scan_rst;  
@@ -63,7 +511,7 @@ esp_err_t ble_start_scan(uint32_t scan_duration_ms = 0)
         ESP_LOGE(BLE_TAG, "GAP callback register failed: %d", ret);  
         return ret;  
     }  
-  
+
     // Set scan parameters  
     esp_ble_scan_params_t scan_params = {  
         .scan_type = BLE_SCAN_TYPE_ACTIVE,  
@@ -88,6 +536,39 @@ esp_err_t ble_start_scan(uint32_t scan_duration_ms = 0)
   
     ESP_LOGI(BLE_TAG, "BLE scan started, duration=%d ms", scan_duration_ms);  
     return ESP_OK;  
+}
+
+esp_err_t ble_start_relay() {
+    s_advertising_params.adv_int_min = 0x100;
+    s_advertising_params.adv_int_max = 0x180;
+    s_advertising_params.adv_type = ADV_TYPE_IND;
+    s_advertising_params.own_addr_type = BLE_ADDR_TYPE_PUBLIC;
+    s_advertising_params.channel_map = ADV_CHNL_ALL;
+    s_advertising_params.adv_filter_policy = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY;
+
+    esp_err_t err = esp_ble_gatt_set_local_mtu(517);
+    if (err != ESP_OK) {
+        ESP_LOGE(RELAY_TAG, "Could not set local MTU: %s",
+                 esp_err_to_name(err));
+        return err;
+    }
+
+    err = esp_ble_gatts_register_callback(gatts_callback);
+    if (err != ESP_OK) {
+        ESP_LOGE(RELAY_TAG, "GATTS callback registration failed: %s",
+                 esp_err_to_name(err));
+        return err;
+    }
+
+    err = esp_ble_gatts_app_register(kRelayAppId);
+    if (err != ESP_OK) {
+        ESP_LOGE(RELAY_TAG, "GATT app registration failed: %s",
+                 esp_err_to_name(err));
+        return err;
+    }
+
+    ESP_LOGI(RELAY_TAG, "Starting BitChat BLE relay");
+    return ESP_OK;
 }
 
 

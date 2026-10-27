@@ -1,6 +1,6 @@
 # BITCHAT ESP
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![Contributors](https://img.shields.io/github/contributors/TenebrisOS/bitchat-esp)](https://github.com/TenebrisOS/bitchat-esp/graphs/contributors) [![Stars](https://img.shields.io/github/stars/TenebrisOS/bitchat-esp)](https://github.com/TenebrisOS/bitchat-esp/stargazers) [![Downloads](https://img.shields.io/github/downloads/TenebrisOS/bitchat-esp/total)](https://github.com/TenebrisOS/bitchat-esp/releases) [![Release](https://img.shields.io/github/v/release/TenebrisOS/bitchat-esp)](https://github.com/TenebrisOS/bitchat-esp/releases/latest) [![License](https://img.shields.io/github/license/TenebrisOS/bitchat-esp)](https://github.com/TenebrisOS/bitchat-esp/blob/main/LICENSE)
+[![Contributors](https://img.shields.io/github/contributors/LASM3/bitchat-esp)](https://github.com/LASM3/bitchat-esp/graphs/contributors) [![Stars](https://img.shields.io/github/stars/LASM3/bitchat-esp)](https://github.com/LASM3/bitchat-esp/stargazers) [![Downloads](https://img.shields.io/github/downloads/LASM3/bitchat-esp/total)](https://github.com/LASM3/bitchat-esp/releases) [![Release](https://img.shields.io/github/v/release/LASM3/bitchat-esp)](https://github.com/LASM3/bitchat-esp/releases/latest) [![License](https://img.shields.io/github/license/LASM3/bitchat-esp)](https://github.com/LASM3/bitchat-esp/blob/main/LICENSE)
 
 
 <!-- ALL-CONTRIBUTORS-BADGE:END -->

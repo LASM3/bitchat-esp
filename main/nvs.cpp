@@ -14,7 +14,9 @@ extern "C" {
 using namespace std;
 
 esp_err_t nvs_init () {
-  ESP_LOGI(NVS_TAG, "Non-Volatile Storage initialized!");
-  return nvs_flash_init();
+  const esp_err_t err = nvs_flash_init();
+  if (err == ESP_OK) {
+    ESP_LOGI(NVS_TAG, "Non-Volatile Storage initialized!");
+  }
+  return err;
 }
-

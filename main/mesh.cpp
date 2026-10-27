@@ -18,11 +18,18 @@ using namespace std;
 
 int scan_interval = 1;
 
+namespace {
+
+bool s_mainnet_detected = false;
+bool s_testnet_detected = false;
+
+}
+
 void parse_advertisement(uint8_t* adv, uint8_t adv_len) {
-  // Log raw advertisement data for debugging  
-  // ESP_LOGI(TAG, "ADVERTISEMENT");  
-  // ESP_LOG_BUFFER_HEX(MESH_TAG, adv, adv_len);  
-    
+  if (adv == nullptr) {
+    return;
+  }
+
   uint8_t* ptr = adv;
   uint8_t* end = adv + adv_len;
 
@@ -36,15 +43,20 @@ void parse_advertisement(uint8_t* adv, uint8_t adv_len) {
 
     // ESP_LOGI(TAG, "AD type=0x%02X, len=%d", type, len-1);  
 
-    // Check complete 128-bit UUID (type 0x07)  
-    if (type == 0x07 && len == 17) {
-      if (std::memcmp(payload, TESTNET_UUID_LE, 16) == 0) {
-        ESP_LOGI(MESH_TAG, "BitChat TESTNET device detected!");
-        return;
-      }
-      if (std::memcmp(payload, MAINNET_UUID_LE, 16) == 0) {
-        ESP_LOGI(MESH_TAG, "BitChat MAINNET device detected!");
-        return;
+    // Service UUID lists may be marked incomplete (0x06) or complete (0x07).
+    if ((type == 0x06 || type == 0x07) && (len - 1) % 16 == 0) {
+      for (size_t offset = 0; offset < len - 1; offset += 16) {
+        const uint8_t* uuid = payload + offset;
+        if (!s_mainnet_detected &&
+            std::memcmp(uuid, MAINNET_UUID_LE, 16) == 0) {
+          s_mainnet_detected = true;
+          ESP_LOGI(MESH_TAG, "Bitchat MAINNET detected");
+        }
+        if (!s_testnet_detected &&
+            std::memcmp(uuid, TESTNET_UUID_LE, 16) == 0) {
+          s_testnet_detected = true;
+          ESP_LOGI(MESH_TAG, "Bitchat TESTNET detected");
+        }
       }
     }
   }

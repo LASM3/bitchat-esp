@@ -1,6 +1,7 @@
 #include "mesh.hpp"
 #include "blehandler.hpp"
 #include "nvs.hpp"
+#include "bitchat_protocol.hpp"
 
 #include "struct.hpp"
 
@@ -19,7 +20,19 @@ extern "C" int app_main() {
   ESP_LOGI(MAIN_TAG, "Welcome to Bitchat");
   
   // Non-Volatile storage initialization
-  nvs_init();
+  esp_err_t nvs_err = nvs_init();
+  if (nvs_err != ESP_OK) {
+    ESP_LOGE(NVS_TAG, "Non-Volatile storage initialization failed: %s",
+             esp_err_to_name(nvs_err));
+    return nvs_err;
+  }
+
+  esp_err_t identity_err = bitchat_peer_init();
+  if (identity_err != ESP_OK) {
+    ESP_LOGE(ERR_TAG, "Bitchat peer identity initialization failed: %s",
+             esp_err_to_name(identity_err));
+    return identity_err;
+  }
   
   esp_err_t bleinit = ble_init();
     

@@ -1,8 +1,3 @@
-idf_component_register(SRCS main.cpp blehandler.cpp nvs.cpp mesh.cpp
+idf_component_register(SRCS main.cpp blehandler.cpp bitchat_protocol.cpp nvs.cpp mesh.cpp
                     INCLUDE_DIRS "."
-                    REQUIRES bt
-                    REQUIRES nvs_flash
-                    REQUIRES esp_system
-                    REQUIRES freertos
-                    REQUIRES log
-                    )
+                    REQUIRES bt nvs_flash esp_system esp_rom freertos log libsodium)

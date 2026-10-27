@@ -37,14 +37,14 @@ We want to bring Bitchat to the ESP32. It would work as a peer or relay for the 
 
 | ESP32 Devices              | Status  |
 |----------------------------|------------------|
-| ESP32-WROOM-32             | Working on it!   |
-| ESP32-WROOM-32U            | ❌ Not Released   |
-| ESP32-WROVER-32            | ❌ Not Released   |
-| ESP32-WROVER-32U           | ❌ Not Released   |
-| ESP32-PICO-D4              | ❌ Not Released   |
-| ESP32-S2                   | ❌ Not Released   |
-| ESP32-S3                   | ❌ Not Released   |
-| ESP32-C3                   | ❌ Not Released   |
+| ESP32-WROOM-32             | Released 1.0.0!   |
+| ESP32-WROOM-32U            | Not Released   |
+| ESP32-WROVER-32            | Not Released   |
+| ESP32-WROVER-32U           | Not Released   |
+| ESP32-PICO-D4              | Not Released   |
+| ESP32-S2                   | Not Released   |
+| ESP32-S3                   | Not Released   |
+| ESP32-C3                   | Not Released   |
 
 ## Installing
 Check [Releases](https://github.com/LASM3/bitchat-esp/releases) page and download the assets you need : 

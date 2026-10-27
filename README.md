@@ -111,5 +111,11 @@ You can use ```idf.py build flash monitor``` instead.
 - Support : 
   - [Rudi](https://github.com/Mayo-png)
 
+## Donations
+If this tool saved you time or helped your workflow, support further development:
+
+[![PayPal](https://img.shields.io/badge/Donate-PayPal-00457C?style=flat-square&logo=paypal)](https://paypal.me/lasm3)
+[![Liberapay](https://img.shields.io/badge/Donate-Liberapay-F6C915?style=flat-square&logo=liberapay)](https://liberapay.com/lasm3/)
+
 ## License 
 This project is under the GNU GPLv3 License, check the [License](LICENSE) file.

@@ -46,6 +46,9 @@ struct PeerInfo {
     int8_t rssi;
     uint8_t version;
     uint32_t last_seen;
+    string nickname;
+    uint8_t signing_public_key[32];
+    bool has_signing_public_key;
 };
 
 extern map<uint64_t, PeerInfo> peers;

@@ -134,11 +134,7 @@ CONFIG_PARTITION_TABLE_MD5=y
 #
 # CONFIG_BITCHAT_NETWORK_TESTNET is not set
 CONFIG_BITCHAT_NETWORK_MAINNET=y
-<<<<<<< Updated upstream
-# end of BitChat ESP
-=======
 # end of Bitchat ESP
->>>>>>> Stashed changes
 
 #
 # Compiler options

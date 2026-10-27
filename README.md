@@ -57,9 +57,9 @@ sha256sum -c sha256sums.txt
 Then use `esptool.py` to flash using this command (make sure your ESP is plugged) :
 ``` bash
 esptool.py --chip esp32 write_flash -z \
-  0x1000  bitchat-esp.bin \
+  0x1000  bootloader.bin \
   0x8000  partition-table.bin \
-  0x10000 firmware.bin
+  0x10000 bitchat-esp.bin
 ```
 Or using `flasher_args.json`
 ``` bash

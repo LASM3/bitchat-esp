@@ -27,6 +27,7 @@ We want to bring Bitchat to the ESP32. It would work as a peer or relay for the 
 |------|-------------|
 | Bitchat mesh detection | Done |
 | Peer and relay | Experimental |
+| LoRa Transmission | Not started yet |
 | Texting using monitor | Not started yet |
 | Logging to storage | Not started yet |
 
